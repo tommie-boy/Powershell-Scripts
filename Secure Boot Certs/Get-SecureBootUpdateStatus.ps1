@@ -1,7 +1,7 @@
 $result = $null
-$computerInfo = Get-ComputerInfo | select-object BiosFirmwareType, OsName
+$computerInfo = Get-ComputerInfo | select-object BiosFirmwareType, CsManufacturer, CsModel, WindowsProductName
 $secureBoot = if(confirm-securebootuefi -ea SilentlyContinue) { "Enabled" } else { "Disabled" } 
-$bitlockerInfo = Get-Bitlockervolume -ea silentlycontinue
+$bitlockerInfo = if(get-command Get-Bitlockervolume -ea silentlycontinue) { Get-Bitlockervolume -ea silentlycontinue }
 $bitlockerActive = if($bitlockerInfo.ProtectionStatus -match 'On') { $true } else { $false } 
 $kekCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI KEK).bytes)
 $dbdefaultCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbdefault).bytes)
@@ -31,19 +31,17 @@ if(test-path $regKey2) {
 }
 
 $allEventIds = @(1801,1808)
-
 $events = @(Get-WinEvent -FilterHashtable @{LogName='System'; ID=$allEventIds} -MaxEvents 2000 -ErrorAction SilentlyContinue)
-        
 $latest_1801_Event = $events | Where-Object {$_.Id -eq 1801} | Sort-Object TimeCreated -Descending | Select-Object -First 1
 $latest_1808_Event = $events | Where-Object {$_.Id -eq 1808} | Sort-Object TimeCreated -Descending | Select-Object -First 1
 
 $kekUpdated = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI KEK).bytes)
- 
 $dbdefaultCertUpdated = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbdefault).bytes)
- 
 $dbCertUpdated = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI db).bytes)
 
 $result += 1 | select-object @{n='computerName';e={ "$($env:computername)" }}, `
+                                @{n='Manufacturer';e={ "$($computerInfo.CsManufacturer)" }}, `
+                                @{n='Model';e={ "$($computerInfo.CsModel)" }}, `
                                 @{n='biosConfiguration';e={ "$($computerInfo.BiosFirmwareType)" }}, `
                                 @{n='secureboot';e={ "$secureBoot" }}, `
                                 @{n='bitlockerActive';e={ "$bitlockerActive" }}, `
@@ -61,6 +59,5 @@ $result += 1 | select-object @{n='computerName';e={ "$($env:computername)" }}, `
                                 @{n='DB Certificate CA 2011';e={ if($dbCertUpdated -match 'Windows UEFI CA 2023') { 'Updated to Windows UEFI CA 2023' } elseif($dbCertUpdated -match 'Microsoft Corporation UEFI CA 2011') { 'Microsoft Corporation UEFI CA 2011' } else { "N/a" } }}, `
                                 @{n='Event1808Time';e={ if($latest_1808_Event) { $($latest_1808_Event.TimeCreated) } else { "N/a" } }}, `
                                 @{n='Event1808Status';e={ if($latest_1808_Event) { $latest_1808_Event.LevelDisplayName } else { "N/a" } }}
-
 
 $result
