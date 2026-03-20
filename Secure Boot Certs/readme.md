@@ -1,3 +1,4 @@
+### `Get-SecureBootUpdateStatus.ps1`
 
 This PowerShell script collects endpoint inventory data related to **Secure Boot readiness** and the **Windows UEFI CA 2023** certificate transition.
 
