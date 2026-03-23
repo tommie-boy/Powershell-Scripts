@@ -1,7 +1,11 @@
 $result = $null
 $computerInfo = Get-ComputerInfo | select-object BiosFirmwareType, CsManufacturer, CsModel, WindowsProductName
 $secureBoot = if(confirm-securebootuefi -ea SilentlyContinue) { "Enabled" } else { "Disabled" } 
-$bitlockerInfo = if(get-command Get-Bitlockervolume -ea silentlycontinue) { Get-Bitlockervolume -ea silentlycontinue }
+$bitlockerInfo = if (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue) { 
+    Get-BitLockerVolume -ErrorAction SilentlyContinue 
+} else { 
+    $null 
+}
 $bitlockerActive = if($bitlockerInfo.ProtectionStatus -match 'On') { $true } else { $false } 
 $kekCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI KEK).bytes)
 $dbdefaultCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbdefault).bytes)
@@ -11,7 +15,7 @@ $regKey1 = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot'
 $regKey2 = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\Servicing'
 
 if(test-path $regKey1) {
-    $secureBootUpdateAvailableRaw = get-itemproperty $regKey1 | select availableupdates
+    $secureBootUpdateAvailableRaw = (Get-ItemProperty $regKey1 -ErrorAction SilentlyContinue).AvailableUpdates
     $secureBootUpdateAvailable = if($secureBootUpdateAvailableRaw -eq 1) { $true } else { $false } 
 } else {
     $secureBootUpdateAvailable = 'N/a'
