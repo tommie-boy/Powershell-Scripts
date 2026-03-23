@@ -2,10 +2,10 @@ $result = $null
 $computerInfo = Get-ComputerInfo | select-object BiosFirmwareType, CsManufacturer, CsModel, WindowsProductName
 $secureBoot = if(confirm-securebootuefi -ea SilentlyContinue) { "Enabled" } else { "Disabled" } 
 $bitlockerInfo = if (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue) { 
-    Get-BitLockerVolume -ErrorAction SilentlyContinue 
-} else { 
-    $null 
-}
+                    Get-BitLockerVolume -ErrorAction SilentlyContinue 
+                } else { 
+                    $null 
+                }
 $bitlockerActive = if($bitlockerInfo.ProtectionStatus -match 'On') { $true } else { $false } 
 $kekCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI KEK).bytes)
 $dbdefaultCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbdefault).bytes)
