@@ -9,7 +9,7 @@ $bitlockerInfo = if (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContin
 $bitlockerActive = if($bitlockerInfo.ProtectionStatus -match 'On') { $true } else { $false } 
 $kekCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI KEK).bytes)
 $dbdefaultCertificate = if(-not($($computerInfo.CsManufacturer) -match 'Microsoft Corporation' -and $($computerInfo.CsModel) -match 'Virtual Machine')) { 
-                            "test"
+                            [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbdefault).bytes)
                         } else {
                             $null   # or "N/a"
                         }
