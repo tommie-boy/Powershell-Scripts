@@ -1,14 +1,18 @@
 $result = $null
 $computerInfo = Get-ComputerInfo | select-object BiosFirmwareType, CsManufacturer, CsModel, WindowsProductName
 $secureBoot = if(confirm-securebootuefi -ea SilentlyContinue) { "Enabled" } else { "Disabled" } 
-$bitlockerInfo = if (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue) { 
+$bitlockerInfo = if (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue) {
                     Get-BitLockerVolume -ErrorAction SilentlyContinue 
                 } else { 
-                    $null 
+                   $null 
                 }
 $bitlockerActive = if($bitlockerInfo.ProtectionStatus -match 'On') { $true } else { $false } 
 $kekCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI KEK).bytes)
-$dbdefaultCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbdefault).bytes)
+$dbdefaultCertificate = if(-not($($computerInfo.CsManufacturer) -match 'Microsoft Corporation' -and $($computerInfo.CsModel) -match 'Virtual Machine')) { 
+                            "test"
+                        } else {
+                            $null   # or "N/a"
+                        }
 $dbCertificate = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI db).bytes)
 
 $regKey1 = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot'
@@ -40,12 +44,24 @@ $latest_1801_Event = $events | Where-Object {$_.Id -eq 1801} | Sort-Object TimeC
 $latest_1808_Event = $events | Where-Object {$_.Id -eq 1808} | Sort-Object TimeCreated -Descending | Select-Object -First 1
 
 $kekUpdated = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI KEK).bytes)
-$dbdefaultCertUpdated = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbdefault).bytes)
+$dbdefaultCertUpdated = if(-not($($computerInfo.CsManufacturer) -match 'Microsoft Corporation' -and $($computerInfo.CsModel) -match 'Virtual Machine')) { 
+                            [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbdefault).bytes)
+                        } else {
+                            $null   # or "N/a"
+                        }
+
 $dbCertUpdated = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI db).bytes)
+
 
 $result += 1 | select-object @{n='computerName';e={ "$($env:computername)" }}, `
                                 @{n='Manufacturer';e={ "$($computerInfo.CsManufacturer)" }}, `
-                                @{n='Model';e={ "$($computerInfo.CsModel)" }}, `
+                                @{n='Model';e={ if($($computerInfo.CsManufacturer) -match 'Microsoft Corporation' -and $($computerInfo.CsModel) -match 'Virtual Machine') { 
+                                                     if( "$($computerInfo.BiosFirmwareType)" -match 'uefi') {
+                                                        "$($computerInfo.CsModel) (Gen2)" }
+                                                     elseif("$($computerInfo.BiosFirmwareType)" -match 'bios') {
+                                                        "$($computerInfo.CsModel) (Gen1)" }
+                                                } else {
+                                                    $($computerInfo.CsModel) } }}, `
                                 @{n='biosConfiguration';e={ "$($computerInfo.BiosFirmwareType)" }}, `
                                 @{n='secureboot';e={ "$secureBoot" }}, `
                                 @{n='operatingSystem';e={ "$($computerInfo.WindowsProductName)" }}, 
